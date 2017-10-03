@@ -131,20 +131,21 @@ int main()
 					}
 
 					//find the optimal lane using sensor fusion data
-					std::pair<int,double> p1 = optimalLane( prev_size, car_s, car, sensor_fusion);
+					std::pair<int, vector<double>> p1 = optimalLane( prev_size, car_s, car, sensor_fusion);
 					int optimal_lane = p1.first;
-					double gap = p1.second;
-					cout << "optimal lane: " << optimal_lane << " gap: " << gap << endl;
+					double front_gap = p1.second[0];
+					double rear_gap = p1.second[1];
+					cout << "optimal lane: " << optimal_lane << " front gap: " << front_gap << " rear gap: " << rear_gap << endl;
 
 					//decide whether to change lane, slow down or speedup
-					if ((tooClose(gap))&& (optimal_lane == lane )){//best to stay in lane and slow down
+					if ((optimal_lane == lane ) && tooCloseFront(front_gap)){//best to stay in lane and slow down
 						cout << "Too close: Slowing down in lane" << endl;
 						//if (gap > 0 && gap < 10)
 						//	ref_vel = ref_vel/2.0;
 						//else
 						ref_vel -= params.vel_step;
 					}
-					else if(abs(optimal_lane -lane)==1) { //allow single lane change
+					else if(!tooClose(front_gap,rear_gap) && abs(optimal_lane -lane)==1) { //allow single lane change
 						cout << "Too close: changing lane" << endl;
 						lane = optimal_lane;
 					}

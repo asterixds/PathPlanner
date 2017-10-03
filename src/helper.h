@@ -184,20 +184,29 @@ namespace utils
         return {x, y};
     }
 
-    bool tooClose(double gap) {
-        return (gap > SAFE_REAR_GAP && gap < SAFE_FRONT_GAP);
+    bool tooCloseFront(double front_gap) {
+        return (front_gap < SAFE_FRONT_GAP);
+    }
+
+    bool tooCloseRear(double rear_gap) {
+        return (rear_gap > SAFE_REAR_GAP );
+    }
+
+    bool tooClose(double front_gap, double rear_gap) {
+        return tooCloseFront(front_gap) || tooCloseRear(rear_gap) ;
     }
     
-    std::pair<int, double> optimalLane(int time_ticks, int target_s, Car car, vector<vector<double>> sensor_fusion)
+    std::pair<int, vector<double>> optimalLane(int time_ticks, int target_s, Car car, vector<vector<double>> sensor_fusion)
     {
-        auto gap_cost = [](int lane, map<int, double> &gaps) {
-            return !tooClose(gaps[lane]) ? 0.0: 1E12;
+        auto gap_cost = [&car](int current_lane, int new_lane, map<int, double> &front_gaps, map<int, double> &rear_gaps) {
+            return ((current_lane == new_lane) && !tooCloseFront(front_gaps[new_lane])) ? 0.0 : !tooClose(front_gaps[new_lane], rear_gaps[new_lane]) ? 0.0: 1E12;
         };
     
-    
-        map<int, double> gaps;
+        map<int, double> front_gaps;
+        map<int, double> rear_gaps;
         for (int lane = 0; lane < AVAILABLE_LANES; lane++){
-                gaps[lane] = MAX_S;
+                front_gaps[lane] = MAX_S;
+                rear_gaps[lane] = -1.0 * MAX_S;
         }
     
         for (auto const &sf_car : sensor_fusion){
@@ -219,18 +228,21 @@ namespace utils
                 if (gap < (50 - MAX_S)) { // S looped around
                     gap += MAX_S;
                 }
-
-                if ( abs(gap) < abs(gaps[lane])){
-                    gaps[lane] = gap;
+                //is gap less than last closest
+                if ( gap >=0 and gap < front_gaps[lane]){
+                    front_gaps[lane] = gap;
+                }
+                else if (gap < 0 && gap >  rear_gaps[lane]){
+                    rear_gaps[lane] = gap;
                 }
             }
         }
             
         int l = d2lane(car.d);
-        double max_cost = gap_cost(l, gaps);
+        double max_cost = gap_cost(l,l, front_gaps, rear_gaps);
         int optimal_lane = l; //crude approach to prioritise staying in lane  - should be another cost function
         for (int i=max(0,l-1);i<min(AVAILABLE_LANES,l+2);i++){
-            double cost = gap_cost(i, gaps);
+            double cost = gap_cost(l,i, front_gaps, rear_gaps);
             //cout << "lane: " << i << " gap: " << gaps[i] << " costs: " << cost << endl;
             if (cost < max_cost){
                 optimal_lane = i;
@@ -238,7 +250,7 @@ namespace utils
             }
         }
         //cout << "current lane: " << l << endl;
-        std::pair<int, double> result(optimal_lane, gaps[optimal_lane]);
+        std::pair<int, vector<double>> result(optimal_lane, {front_gaps[optimal_lane], rear_gaps[optimal_lane]});
         //cout << "Optimal lane: " << result.first << " gap: " << result.second << endl;
         return result;
     }

@@ -7,7 +7,7 @@ The path planner algorithm is implemented as follows:
 In each update cycle:
 1. Save localisation data (x,y,s,d, yaw,speed), sensor fusion data about other cars  and also the previous path (if any) received from the simulator
 2. Find the optimal lane and closest gap within that lane (gap can be positive or negative)
-The optimal lane function uses a cost function that finds the closest vehicle for each lane and then assigns a cost (0 or 1E12) to each lane based on whether the closest vehicle is within a safe interval (gap > SAFE_REAR_GAP && gap < SAFE_FRONT_GAP). The cost function priritises staying in the lane and also leaves more buffer in the front as compared to the rear gap when deciding if it is too close.
+The optimal lane function uses a cost function that finds the closest vehicle for each lane and then assigns a cost (0 or 1E12) to each lane based on whether the closest vehicle is within a risk interval (rear_gap > SAFE_REAR_GAP )|| (front_gap < SAFE_FRONT_GAP). Only front gap is checked when optimal lane is the same as current lane but both conditions need to be check when changing lanes. The cost function priritises staying in the lane and also leaves more buffer in the front as compared to the rear gap when deciding if it is too close.
 3. Decide on the basis of the optimal lane and gap whether to:
 - change lane
 - keep lane
